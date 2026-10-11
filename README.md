@@ -136,7 +136,34 @@ analyze.py              新平台探测工具
 1. 改代码
 2. 改 `make_deploy.py` 顶部的 `APP_VERSION`（以及 `AUTHOR` / `PASSWORDS` / `UPDATE_BASE` 如需）
 3. 跑 `python make_deploy.py`
-4. 把 `release/` 里 4 个文件传到更新源，并把新的 `一键部署.bat` 发出去
+4. 提交并推送（见下）
+
+`release/` 目录里的 4 个文件就是对方的更新源。本项目的更新源直接托管在仓库内：
+
+```
+https://raw.githubusercontent.com/jdz537827-rgb/auto-course-player/main/release
+```
+
+所以**推送到 main 即等于发布新版本**，对方双击「一键更新」即可同步。
+
+### 推送到 GitHub
+
+正常情况用 git 即可：
+
+```bash
+git add -A && git commit -m "..." && git push
+```
+
+若所在网络封掉了 git over https（`git push` 报 `CONNECT tunnel failed, response 502`
+或 `schannel: failed to receive handshake`），改用仓库内的 `gh_push.py`——
+它走 GitHub REST API，不依赖 git 协议：
+
+```bash
+git add -A
+python gh_push.py -m "feat: 某某改动"
+```
+
+前提：`gh auth status` 已登录。
 
 ---
 
