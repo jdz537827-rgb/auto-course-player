@@ -28,6 +28,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent
+
 
 def run(cmd, **kw):
     r = subprocess.run(cmd, capture_output=True, **kw)
@@ -57,6 +59,50 @@ def gh_json(args, method=None, fields=None, body=None):
         sys.exit(1)
     out = r.stdout.decode("utf-8", "ignore").strip()
     return json.loads(out) if out else {}
+
+
+def load_eol_rules():
+    """读 .gitattributes，取出 *.ext -> eol(lf/crlf) 的映射。
+
+    必须按它来归一化：本脚本直接上传原始字节，若不做转换，仓库里就会存进
+    CRLF 的 .py 文件。别人 clone 后 git 用 clean 过滤器算出的是 LF 摘要，
+    与索引里的 CRLF 摘要对不上，git status 会显示所有文本文件都被修改。
+    """
+    rules = []
+    ga = ROOT / ".gitattributes"
+    if not ga.exists():
+        return rules
+    for line in ga.read_text(encoding="utf-8", errors="ignore").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if not line:
+            continue
+        parts = line.split()
+        pat = parts[0]
+        eol = None
+        for p in parts[1:]:
+            if p.startswith("eol="):
+                eol = p[4:]
+            elif p in ("-text", "binary"):
+                eol = None
+        if eol in ("lf", "crlf") and pat.startswith("*."):
+            rules.append((pat[1:].lower(), eol))
+    return rules
+
+
+def normalize(data: bytes, eol):
+    """按 eol 规则归一换行符；二进制（含 NUL）与无规则文件原样返回。"""
+    if not eol or b"\0" in data:
+        return data
+    d = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return d.replace(b"\n", b"\r\n") if eol == "crlf" else d
+
+
+def eol_for(path: str, rules):
+    low = path.lower()
+    for ext, eol in rules:
+        if low.endswith(ext):
+            return eol
+    return None
 
 
 def main():
@@ -91,9 +137,15 @@ def main():
     print(f"文件数: {len(entries)}")
 
     # 2) 逐个建 blob
+    rules = load_eol_rules()
+    print(f"换行符规则: {rules or '(无)'}")
+
     tree = []
     for mode, path in entries:
-        data = Path(path).read_bytes()
+        raw = Path(path).read_bytes()
+        data = normalize(raw, eol_for(path, rules))
+        if data != raw:
+            print(f"  归一化换行 -> {eol_for(path, rules).upper()}: {path}")
         # 二进制安全：base64 上传。
         # 注意走 --input (stdin) 而非 -f 命令行参数：Windows 命令行上限约 32K，
         # 大文件（如 250KB 的 一键部署.bat）转 base64 后会超限。
