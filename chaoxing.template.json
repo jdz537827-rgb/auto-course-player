@@ -1,0 +1,64 @@
+{
+  "_author": "zkk",
+  "_version": "v1.0",
+  "_date": "2026.10.11",
+  "_comment": "超星学习通（泛雅 MOOC2-ANS）配置。首次使用直接双击「启动刷课.bat」扫码登录、选课即可，startUrl 无需手动填写。",
+
+  "startUrl": "https://mooc2-ans.chaoxing.com/mooc2-ans/mycourse/stu?courseid=0&clazzid=0&cpi=0",
+
+  "_pathNote": "下面三个路径留空即可，脚本会自动放到用户主目录下的 .auto-course-player 文件夹（跨平台）。需要自定义时才填。",
+  "cdpPort": 9222,
+  "userDataDir": "",
+  "logFile": "",
+  "progressFile": "",
+
+  "_browserPathNote": "浏览器可执行文件路径。留空则自动查找（优先系统 Edge/Chrome）。一般无需填写。",
+  "browserPath": "",
+
+  "features": {
+    "_comment": "任务点处理开关。某类任务点不想自动处理，把对应项改成 false 即可，其余照常。",
+    "quiz": true,
+    "document": true,
+    "discussion": true
+  },
+
+  "discussion": {
+    "_comment": "讨论任务点回复设置。AI 可用时按 replyHint 生成回帖；不可用或失败则用 fallbackReply（留空则用内置模板）。",
+    "replyHint": "写一段 80-150 字的讨论式回帖：观点明确、有具体思路或步骤，像学生自己在论坛回复，不要客套开场白。",
+    "fallbackReply": ""
+  },
+
+  "behavior": {
+    "_comment_rate": "超星服务端会校验 playingTime 的增速，倍速上限 2x。1.5x 稳妥，2x 可接受，>2x 会被打回并不计数。",
+    "playbackRate": 1.5,
+    "mouseJitter": true,
+    "pollIntervalSec": 5,
+    "maxMinutesPerLesson": 120,
+    "stallToleranceSec": 120,
+    "pageSettleSec": 4,
+    "verbose": false,
+    "debugTaskPoint": false
+  },
+
+  "selectors": {
+    "_comment": "超星选择器较稳定，一般无需修改",
+    "video": "video",
+    "playButton": ".vjs-big-play-button, .ans-video-PlayBtn, .videoArea .play",
+    "chapterItem": ".chapter_item, [class*='chapter'] a, [class*='catalog'] a"
+  },
+
+  "ai": {
+    "_comment": "AI 答题配置。enabled=false 则退回启发式作答。也可用环境变量 CX_AI_KEY 提供 key，不必写进本文件。",
+    "enabled": false,
+    "baseUrl": "",
+    "apiKey": "",
+    "model": "",
+    "timeoutSec": 60
+  },
+
+  "notes": [
+    "超星的进度由播放器自身发送 multimedia/log 心跳包决定，本工具不伪造该请求。",
+    "保活失效的最典型表现是「心跳停摆」，脚本会自动重注入。",
+    "倍速建议不超过 1.5x，否则服务端可能判定进度异常而不计数。"
+  ]
+}

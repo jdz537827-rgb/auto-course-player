@@ -1,0 +1,9 @@
+# bat 脚本必须是 CRLF，否则 cmd 执行会出错
+*.bat text eol=crlf
+
+# 代码文件统一 LF 存入仓库
+*.py text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.txt text eol=lf

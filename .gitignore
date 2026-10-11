@@ -1,0 +1,28 @@
+# ---- 敏感信息：绝对不要提交 ----
+# 本地运行配置，含个人课程链接（courseid/clazzid/enc）和 AI API key
+chaoxing.json
+
+# ---- 运行产物 / 临时文件 ----
+__pycache__/
+*.py[cod]
+*.pyc
+nul
+*.log
+debug_dump/
+screenshots/
+
+# ---- 部署 bat 解包出来的产物 ----
+auto-course-player/
+
+# ---- 旧版本备份（体积大且已废弃） ----
+一键部署.旧版备份.bat
+
+# ---- 进度记录（含个人课程信息） ----
+*_done.txt
+.done_*.json
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

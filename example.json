@@ -1,0 +1,63 @@
+{
+  "_comment": "自动刷课配置模板。拿到新平台时，只需改本文件即可适配。",
+  "_usage": "1) 先跑 analyze.py 自动探测选择器 2) 把结果贴进 selectors 3) 跑 player.py",
+
+  "startUrl": "https://example.com/course/12345",
+
+  "_pathNote": "以下路径留空即自动放到用户主目录下的 .auto-course-player（跨平台）",
+  "cdpPort": 9222,
+  "userDataDir": "",
+  "headless": false,
+
+  "logFile": "",
+  "progressFile": "",
+
+  "behavior": {
+    "playbackRate": 2.0,
+    "muted": true,
+    "mouseJitter": true,
+    "pollIntervalSec": 5,
+    "maxMinutesPerLesson": 90,
+    "stallToleranceSec": 90,
+    "pageSettleSec": 3,
+    "loginWaitSec": 0,
+    "autoNext": true
+  },
+
+  "selectors": {
+    "_comment": "留空则由 analyze.py 探测填充。video 为必需项。",
+    "video": "video",
+    "courseList": "",
+    "lessonItem": "",
+    "nextBtn": "",
+    "progressText": ""
+  },
+
+  "report": {
+    "_comment": "若平台用 XHR/fetch 上报进度，在此声明以便监控与拦截",
+    "endpointPattern": "",
+    "method": "POST"
+  },
+
+  "courseList": [
+    {
+      "_comment": "方式 A：显式列出每节 URL。最稳定，推荐。",
+      "url": "https://example.com/course/12345/lesson/1",
+      "title": "第一章 绪论"
+    },
+    {
+      "url": "https://example.com/course/12345/lesson/2",
+      "title": "第二章 基础概念"
+    }
+  ],
+
+  "courseListFromPage": {
+    "_comment": "方式 B：从目录页自动抽取。填了 courseList 时忽略本项。",
+    "enabled": false,
+    "tocUrl": "https://example.com/course/12345",
+    "itemSelector": ".chapter-item a",
+    "titleAttr": "text",
+    "urlAttr": "href",
+    "limit": 0
+  }
+}
