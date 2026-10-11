@@ -6,7 +6,7 @@ title Chaoxing Auto Player - One-Click Deploy
 echo ============================================================
 echo   Chaoxing Auto Course Player - One-Click Deploy
 echo.
-echo   Author: zkk      Date: 2026.10.11      Version: v1.0
+echo   Author: zkk      Date: 2026.10.11      Version: v1.1
 echo ============================================================
 echo.
 
@@ -57,11 +57,11 @@ echo [2/5] Checking Python...
 set "PYEXE="
 call :find_py
 if not defined PYEXE (
-    echo       Python 3.9+ not found. Downloading Python 3.12.7 ...
+    echo       Python 3.8+ not found. Downloading Python 3.12.7 ...
     set "PYINST=%TEMP%\python-3.12.7-amd64.exe"
     curl -L -o "!PYINST!" "https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe"
     if not exist "!PYINST!" goto :fail_py
-    echo       Installing Python silently (no admin required)...
+    echo       Installing Python silently, no admin required ...
     "!PYINST!" /quiet InstallAllUsers=0 PrependPath=1 Include_launcher=1
     timeout /t 5 >nul
     set "PYEXE=%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
@@ -71,10 +71,21 @@ echo       Python: !PYEXE!
 "!PYEXE!" --version
 echo.
 
-echo [3/5] Installing playwright...
-"!PYEXE!" -m pip install --upgrade pip >nul 2>&1
-"!PYEXE!" -m pip install playwright
-if errorlevel 1 goto :fail_pip
+echo [3/5] Checking playwright...
+"!PYEXE!" -c "import playwright" >nul 2>&1
+if not errorlevel 1 (
+    echo       already installed, skip.
+) else (
+    echo       Installing playwright ...
+    "!PYEXE!" -m pip install --upgrade pip >nul 2>&1
+    "!PYEXE!" -m pip install playwright
+    if errorlevel 1 (
+        rem 常见故障：pip 被配了访问不到的镜像源，回退官方源再试一次
+        echo       retry with official PyPI ...
+        "!PYEXE!" -m pip install playwright -i https://pypi.org/simple
+        if errorlevel 1 goto :fail_pip
+    )
+)
 echo       done.
 echo.
 
@@ -111,10 +122,22 @@ exit /b 0
 
 rem ==================================================================
 :find_py
-where python >nul 2>&1 && (
-    python -c "import sys;sys.exit(0 if sys.version_info>=(3,9) else 1)" >nul 2>&1 && set "PYEXE=python" && goto :eof
-)
-for %%V in (313 312 311 310) do (
+rem 坑（已踩两次）：cmd 解析复合块 ( ) 时**不理会引号**，块内任何括号都会被打断，
+rem 报「此时不应有 ...」后直接终止。所以所有 python -c 都必须写在复合块外面，
+rem 一律用 `if errorlevel 1 goto` 跳转来控制流程。
+where python >nul 2>&1
+if errorlevel 1 goto :fp_py3
+python -c "import sys; sys.exit(0 if sys.version_info[0]*100+sys.version_info[1]>=308 else 1)" >nul 2>&1
+if not errorlevel 1 set "PYEXE=python"
+if defined PYEXE goto :eof
+:fp_py3
+where python3 >nul 2>&1
+if errorlevel 1 goto :fp_store
+python3 -c "import sys; sys.exit(0 if sys.version_info[0]*100+sys.version_info[1]>=308 else 1)" >nul 2>&1
+if not errorlevel 1 set "PYEXE=python3"
+if defined PYEXE goto :eof
+:fp_store
+for %%V in (313 312 311 310 309 308) do (
     if exist "%LOCALAPPDATA%\Programs\Python\Python%%V\python.exe" (
         set "PYEXE=%LOCALAPPDATA%\Programs\Python\Python%%V\python.exe"
         goto :eof
@@ -3104,7 +3127,7 @@ rem ==================================================================
 @@F2:ICAgIGhlYXJ0YmVhdFN0YWxsZWQ6IGxhc3QgPyAoRGF0ZS5ub3coKSAtIGxhc3QuYXQgPiAxMDAw
 @@F2:MDApIDogZmFsc2UsCiAgICB9OwogIH07CgogIHdpbmRvdy5fX2N4X3JhdGUgPSBSQVRFOwogIHdp
 @@F2:bmRvdy5fX2N4X3J1bm5pbmcgPSB0cnVlOwp9KSgpOwo=
-@@F3:ewogICJfYXV0aG9yIjogInprayIsCiAgIl92ZXJzaW9uIjogInYxLjAiLAogICJfZGF0ZSI6ICIy
+@@F3:ewogICJfYXV0aG9yIjogInprayIsCiAgIl92ZXJzaW9uIjogInYxLjEiLAogICJfZGF0ZSI6ICIy
 @@F3:MDI2LjEwLjExIiwKICAiX2NvbW1lbnQiOiAi6LaF5pif5a2m5Lmg6YCa77yI5rOb6ZuFIE1PT0My
 @@F3:LUFOU++8iemFjee9ruOAgummluasoeS9v+eUqOebtOaOpeWPjOWHu+OAjOWQr+WKqOWIt+ivvi5i
 @@F3:YXTjgI3miavnoIHnmbvlvZXjgIHpgInor77ljbPlj6/vvIxzdGFydFVybCDml6DpnIDmiYvliqjl
@@ -3150,7 +3173,7 @@ rem ==================================================================
 @@F3:ICAi5YCN6YCf5bu66K6u5LiN6LaF6L+HIDEuNXjvvIzlkKbliJnmnI3liqHnq6/lj6/og73liKTl
 @@F3:rprov5vluqblvILluLjogIzkuI3orqHmlbDjgIIiCiAgXQp9
 @@F4:QGVjaG8gb2ZmDQpjZCAvZCAiJX5kcDAiDQplY2hvID09PT09PT09PT09PT09PT09PT09PT09PT09
-@@F4:PT09PT09PT09PT09PT09PT09DQplY2hvICAgs6zQx9fUtq/Lor/OICB2MS4wDQplY2hvICAg1/fV
+@@F4:PT09PT09PT09PT09PT09PT09DQplY2hvICAgs6zQx9fUtq/Lor/OICB2MS4xDQplY2hvICAg1/fV
 @@F4:3zogemtrICAgIDIwMjYuMTAuMTENCmVjaG8gICDK17TOyrnTw6O6yajC67XHwrwgLV4+IMrkyOu/
 @@F4:zrPMseC6xSAtXj4gu9iztQ0KZWNobyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
 @@F4:PT09PT09PT09PQ0KZWNoby4NCnNldCAiUFlFWEU9cHl0aG9uIg0Kd2hlcmUgcHl0aG9uID5udWwg
@@ -3197,4 +3220,4 @@ rem ==================================================================
 @@F5:DQpwYXVzZQ0KZXhpdCAvYiAwDQo6bmV0ZmFpbA0KZWNoby4NCmVjaG8gW0VSUk9SXSDO3reoway9
 @@F5:07j80MLUtKOsx+u87LLpzfjC57rz1tjK1KGjDQplY2hvILWxx7CzzNDyzrTX9sjOus64xLavo6y/
 @@F5:ybzM0PjKudPDoaMNCnBhdXNlDQpleGl0IC9iIDENCg==
-@@F6:djEuMA0K
+@@F6:djEuMQ0K

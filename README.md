@@ -1,6 +1,6 @@
 # auto-course-player
 
-超星学习通（泛雅 MOOC2-ANS）自动刷课工具 · v1.0
+超星学习通（泛雅 MOOC2-ANS）自动刷课工具 · v1.1
 
 **作者：zkk** · 2026.10.11
 

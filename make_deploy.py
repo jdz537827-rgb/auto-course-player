@@ -29,7 +29,7 @@ HERE = Path(__file__).resolve().parent
 OUT = HERE / "一键部署.bat"
 
 # ---- 可配置项（改这里，全包同步）---------------------------------
-APP_VERSION = "v1.0"
+APP_VERSION = "v1.1"
 AUTHOR = "zkk"
 BUILD_DATE = "2026.10.11"
 # 使用口令：作者真实姓名 / 外号，任意一个通过即可（可自行增删）
@@ -127,11 +127,11 @@ echo [2/5] Checking Python...
 set "PYEXE="
 call :find_py
 if not defined PYEXE (
-    echo       Python 3.9+ not found. Downloading Python 3.12.7 ...
+    echo       Python 3.8+ not found. Downloading Python 3.12.7 ...
     set "PYINST=%TEMP%\python-3.12.7-amd64.exe"
     curl -L -o "!PYINST!" "https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe"
     if not exist "!PYINST!" goto :fail_py
-    echo       Installing Python silently (no admin required)...
+    echo       Installing Python silently, no admin required ...
     "!PYINST!" /quiet InstallAllUsers=0 PrependPath=1 Include_launcher=1
     timeout /t 5 >nul
     set "PYEXE=%LOCALAPPDATA%\Programs\Python\Python312\python.exe"
@@ -141,10 +141,21 @@ echo       Python: !PYEXE!
 "!PYEXE!" --version
 echo.
 
-echo [3/5] Installing playwright...
-"!PYEXE!" -m pip install --upgrade pip >nul 2>&1
-"!PYEXE!" -m pip install playwright
-if errorlevel 1 goto :fail_pip
+echo [3/5] Checking playwright...
+"!PYEXE!" -c "import playwright" >nul 2>&1
+if not errorlevel 1 (
+    echo       already installed, skip.
+) else (
+    echo       Installing playwright ...
+    "!PYEXE!" -m pip install --upgrade pip >nul 2>&1
+    "!PYEXE!" -m pip install playwright
+    if errorlevel 1 (
+        rem 常见故障：pip 被配了访问不到的镜像源，回退官方源再试一次
+        echo       retry with official PyPI ...
+        "!PYEXE!" -m pip install playwright -i https://pypi.org/simple
+        if errorlevel 1 goto :fail_pip
+    )
+)
 echo       done.
 echo.
 
@@ -181,10 +192,22 @@ exit /b 0
 
 rem ==================================================================
 :find_py
-where python >nul 2>&1 && (
-    python -c "import sys;sys.exit(0 if sys.version_info>=(3,9) else 1)" >nul 2>&1 && set "PYEXE=python" && goto :eof
-)
-for %%V in (313 312 311 310) do (
+rem 坑（已踩两次）：cmd 解析复合块 ( ) 时**不理会引号**，块内任何括号都会被打断，
+rem 报「此时不应有 ...」后直接终止。所以所有 python -c 都必须写在复合块外面，
+rem 一律用 `if errorlevel 1 goto` 跳转来控制流程。
+where python >nul 2>&1
+if errorlevel 1 goto :fp_py3
+python -c "import sys; sys.exit(0 if sys.version_info[0]*100+sys.version_info[1]>=308 else 1)" >nul 2>&1
+if not errorlevel 1 set "PYEXE=python"
+if defined PYEXE goto :eof
+:fp_py3
+where python3 >nul 2>&1
+if errorlevel 1 goto :fp_store
+python3 -c "import sys; sys.exit(0 if sys.version_info[0]*100+sys.version_info[1]>=308 else 1)" >nul 2>&1
+if not errorlevel 1 set "PYEXE=python3"
+if defined PYEXE goto :eof
+:fp_store
+for %%V in (313 312 311 310 309 308) do (
     if exist "%LOCALAPPDATA%\Programs\Python\Python%%V\python.exe" (
         set "PYEXE=%LOCALAPPDATA%\Programs\Python\Python%%V\python.exe"
         goto :eof
