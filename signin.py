@@ -526,13 +526,17 @@ class CXSigner:
 
     def latest_sign_activity(self, courses=None):
         """找当前最新一个还能签的活动（二维码只带 enc、不带 activeId 时兜底）。"""
-        best = None
+        best, best_key = None, -1
         for c in courses or self.all_courses():
             for a in self.activities(c):
                 if a["activeId"] in self.signed:
                     continue
-                if best is None or int(a["activeId"]) > int(best["activeId"]):
-                    best = a
+                try:
+                    key = int(a["activeId"])
+                except Exception:
+                    key = 0
+                if key > best_key:
+                    best, best_key = a, key
         return best
 
     def sign_qr_text(self, text, opts, courses=None):
@@ -585,9 +589,11 @@ class CXSigner:
                 if a["activeId"] in self.signed:
                     continue
                 self.log(f"发现待签活动: {a['name']} (activeId={a['activeId']})")
+                # 只在成功后才记入 signed：失败了下一轮还要重试
+                # （二维码的 enc 说变就变，第一张抓到的可能是刚过期的）
                 if self.sign(a, opts):
                     hits += 1
-                self.signed.add(a["activeId"])
+                    self.signed.add(a["activeId"])
         return hits
 
 
