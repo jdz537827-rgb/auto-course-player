@@ -29,7 +29,7 @@ HERE = Path(__file__).resolve().parent
 OUT = HERE / "一键部署.bat"
 
 # ---- 可配置项（改这里，全包同步）---------------------------------
-APP_VERSION = "v1.1"
+APP_VERSION = "v1.2"
 AUTHOR = "zkk"
 BUILD_DATE = "2026.10.11"
 # 使用口令：作者真实姓名 / 外号，任意一个通过即可（可自行增删）
@@ -41,13 +41,15 @@ PASSWORDS = ["张楷堃", "包子"]
 UPDATE_BASE = "https://raw.githubusercontent.com/jdz537827-rgb/auto-course-player/main/release"
 # 发布清单：更新时会按 files.txt 里的清单逐一下载覆盖（不要放 chaoxing.json，
 # 否则会覆盖用户自己的配置）
-UPDATE_FILES = ["chaoxing_player.py", "chaoxing.js"]
+UPDATE_FILES = ["chaoxing_player.py", "chaoxing.js", "signin.py", "qrdecode.py"]
 
 # (本地源文件, 释放后的文件名, payload 标签)
 EMBED = [
     ("chaoxing_player.py", "chaoxing_player.py", "F1"),
     ("chaoxing.js", "chaoxing.js", "F2"),
     ("chaoxing.template.json", "chaoxing.json", "F3"),
+    ("signin.py", "signin.py", "F7"),
+    ("qrdecode.py", "qrdecode.py", "F9"),
 ]
 
 # 释放目录里的启动器（含中文，按 GBK 嵌入；中文 Windows 的 cmd 直接可读）
@@ -64,6 +66,67 @@ LAUNCHER_BAT = (
     "where python >nul 2>&1\r\n"
     "if errorlevel 1 set \"PYEXE=%LOCALAPPDATA%\\Programs\\Python\\Python312\\python.exe\"\r\n"
     "\"%PYEXE%\" chaoxing_player.py --config chaoxing.json --pick\r\n"
+    "echo.\r\n"
+    "echo 已结束，按任意键关闭…\r\n"
+    "pause >nul\r\n"
+)
+
+# 释放目录里的签到启动器（GBK 嵌入）
+# 注意：cmd 解析复合块时不理会引号，块内任何括号都会打断解析，
+# 所以下面 if/else 块内的文本一律不含括号。
+SIGNIN_BAT = (
+    "@echo off\r\n"
+    "cd /d \"%~dp0\"\r\n"
+    "echo ============================================\r\n"
+    "echo   超星远程签到  {{VERSION}}\r\n"
+    "echo   作者: {{AUTHOR}}    {{DATE}}\r\n"
+    "echo ============================================\r\n"
+    "echo.\r\n"
+    "if not \"%~1\"==\"\" goto :qrdrop\r\n"
+    "echo   1  只签一次，普通/位置/手势/签到码\r\n"
+    "echo   2  持续监听，来一个签一个\r\n"
+    "echo   3  扫码签到，给一张二维码图或二维码文字\r\n"
+    "echo   4  扫码抢签，二维码在屏幕上每秒都在变\r\n"
+    "echo   5  框选二维码在屏幕上的位置\r\n"
+    "echo.\r\n"
+    "set \"M=1\"\r\n"
+    "set /p \"M=请选择 1 到 5，直接回车为 1: \"\r\n"
+    "set \"PYEXE=python\"\r\n"
+    "where python >nul 2>&1\r\n"
+    "if errorlevel 1 set \"PYEXE=%LOCALAPPDATA%\\Programs\\Python\\Python312\\python.exe\"\r\n"
+    "if \"%M%\"==\"2\" goto :mon\r\n"
+    "if \"%M%\"==\"3\" goto :qr\r\n"
+    "if \"%M%\"==\"4\" goto :screen\r\n"
+    "if \"%M%\"==\"5\" goto :pick\r\n"
+    "\"%PYEXE%\" signin.py --config chaoxing.json\r\n"
+    "goto :end\r\n"
+    ":qrdrop\r\n"
+    "set \"PYEXE=python\"\r\n"
+    "where python >nul 2>&1\r\n"
+    "if errorlevel 1 set \"PYEXE=%LOCALAPPDATA%\\Programs\\Python\\Python312\\python.exe\"\r\n"
+    "echo 二维码图片: %~1\r\n"
+    "\"%PYEXE%\" signin.py --config chaoxing.json --qr \"%~1\"\r\n"
+    "goto :end\r\n"
+    ":qr\r\n"
+    "echo.\r\n"
+    "echo 把二维码图片拖进这个窗口，或直接粘贴二维码里的文字，然后回车：\r\n"
+    "set \"QRF=\"\r\n"
+    "set /p \"QRF=图片或文字: \"\r\n"
+    "set \"QRF=%QRF:\"=%\"\r\n"
+    "\"%PYEXE%\" signin.py --config chaoxing.json --qr \"%QRF%\"\r\n"
+    "goto :end\r\n"
+    ":screen\r\n"
+    "echo.\r\n"
+    "echo 先把二维码显示在屏幕上（投屏/会议/远程桌面），本窗口别挡住它。\r\n"
+    "echo 程序会一直盯着那块区域抢码，签上就自动停。Ctrl+C 可中断。\r\n"
+    "\"%PYEXE%\" signin.py --config chaoxing.json --qr-screen --fps 4\r\n"
+    "goto :end\r\n"
+    ":pick\r\n"
+    "\"%PYEXE%\" signin.py --config chaoxing.json --pick-region\r\n"
+    "goto :end\r\n"
+    ":mon\r\n"
+    "\"%PYEXE%\" signin.py --config chaoxing.json --monitor\r\n"
+    ":end\r\n"
     "echo.\r\n"
     "echo 已结束，按任意键关闭…\r\n"
     "pause >nul\r\n"
@@ -114,6 +177,9 @@ call :extract_one F3 "%WORKDIR%\chaoxing.json" || goto :fail
 call :extract_one F4 "%WORKDIR%\启动刷课.bat" || goto :fail
 call :extract_one F5 "%WORKDIR%\一键更新.bat" || goto :fail
 call :extract_one F6 "%WORKDIR%\version.txt" || goto :fail
+call :extract_one F7 "%WORKDIR%\signin.py" || goto :fail
+call :extract_one F8 "%WORKDIR%\一键签到.bat" || goto :fail
+call :extract_one F9 "%WORKDIR%\qrdecode.py" || goto :fail
 echo       Files extracted to: %WORKDIR%
 echo.
 
@@ -357,6 +423,11 @@ def fill(main: str, launcher: str, template: bytes, updater: str = "") -> tuple:
                 .replace("{{DATE}}", BUILD_DATE)
     )
     updater = updater.replace("{{BASE}}", UPDATE_BASE)
+    signin_launcher = (
+        SIGNIN_BAT.replace("{{VERSION}}", APP_VERSION)
+                  .replace("{{AUTHOR}}", AUTHOR)
+                  .replace("{{DATE}}", BUILD_DATE)
+    )
     # 配置模板头部同步版本信息
     import json
     conf = json.loads(template.decode("utf-8"))
@@ -364,7 +435,7 @@ def fill(main: str, launcher: str, template: bytes, updater: str = "") -> tuple:
     conf["_version"] = APP_VERSION
     conf["_date"] = BUILD_DATE
     template = json.dumps(conf, ensure_ascii=False, indent=2).encode("utf-8")
-    return main, launcher, template, updater
+    return main, launcher, template, updater, signin_launcher
 
 
 def main():
@@ -372,7 +443,7 @@ def main():
     launcher = LAUNCHER_BAT
     total = 0
     # F3（配置模板）先注入版本信息再嵌入
-    bat_main, launcher, _, updater = fill(
+    bat_main, launcher, _, updater, signin_launcher = fill(
         BAT_MAIN, launcher, (HERE / "chaoxing.template.json").read_bytes(),
         UPDATER_BAT)
     parts = [bat_main]
@@ -383,7 +454,7 @@ def main():
             sys.exit(2)
         data = p.read_bytes()
         if src == "chaoxing.template.json":
-            _, _, data, _ = fill(bat_main, launcher, data, updater)
+            _, _, data, _, _ = fill(bat_main, launcher, data, updater)
         total += len(data)
         parts.append(payload_block(tag, data))
         print(f"  嵌入 {src:<26} {len(data):>8} 字节  [{tag}]")
@@ -396,6 +467,9 @@ def main():
     ver = (APP_VERSION + "\r\n").encode("ascii")
     parts.append(payload_block("F6", ver))
     print(f"  嵌入 {'version.txt':<26} {len(ver):>8} 字节  [F6]")
+    # F8：签到启动器
+    parts.append(payload_block("F8", signin_launcher.encode("gbk")))
+    print(f"  嵌入 {'一键签到.bat':<26} {len(signin_launcher.encode('gbk')):>8} 字节  [F8]")
 
     # 同时产出 release/ 目录：把这 4 个文件上传到任意静态空间即可供对方更新
     rel = HERE / "release"

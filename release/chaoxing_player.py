@@ -2268,7 +2268,7 @@ class CXPlayer:
         """取 iframe(frame_content-zj / 任何指向 studentcourse|study 的 iframe) 的绝对 src。"""
         try:
             src = page.evaluate(
-                """() => {
+                r"""() => {
                     const frs = Array.from(document.querySelectorAll('iframe'));
                     for (const f of frs) {
                         const s = f.src || f.getAttribute('data-src') || '';

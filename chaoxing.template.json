@@ -28,6 +28,23 @@
     "fallbackReply": ""
   },
 
+  "signin": {
+    "_comment": "远程签到配置。双击「一键签到.bat」使用，或命令行 python signin.py --config chaoxing.json。",
+    "_comment_qr": "扫码签到：二维码里的 enc 一直在变（有的老师设到 1 秒一变），截图转发基本来不及。真正能抢到动态码的办法是让程序盯着屏幕实时解码：先跑 --pick-region 框出二维码在屏幕上的位置，再跑 --qr-screen。",
+    "enc": "",
+    "qrRegion": null,
+    "_comment_enc": "静态二维码才需要手填 enc；动态码留空，用 --qr-screen 实时抓。",
+    "_comment_location": "位置签到：经纬度可从百度拾取坐标系统获取；address 会显示在教师端，要填得像教室地址。不填时脚本会从活动详情里自动取老师设置的地点。",
+    "location": {
+      "lat": "",
+      "lon": "",
+      "address": ""
+    },
+    "_comment_photo": "拍照签到：先在 https://pan-yz.chaoxing.com 根目录上传一张名为 0.jpg 的图片，把返回的 objectId 填这里。",
+    "photoObjectId": "",
+    "pollSeconds": 60
+  },
+
   "behavior": {
     "_comment_rate": "超星服务端会校验 playingTime 的增速，倍速上限 2x。1.5x 稳妥，2x 可接受，>2x 会被打回并不计数。",
     "playbackRate": 1.5,

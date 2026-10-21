@@ -1,2 +1,4 @@
 chaoxing_player.py
 chaoxing.js
+signin.py
+qrdecode.py

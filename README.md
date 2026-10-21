@@ -29,6 +29,72 @@
 
 ---
 
+## 远程签到
+
+双击 **`一键签到.bat`**，或命令行运行 `python signin.py --config chaoxing.json`。
+
+它**不自己登录**，而是连上你已经登录好的浏览器取出 cookie 再调接口，因此不会触发异地登录或密码风控。
+
+```bash
+python signin.py --config chaoxing.json               # 检查一次，有未签到就签
+python signin.py --config chaoxing.json --monitor     # 持续监听，来一个签一个
+python signin.py --config chaoxing.json --all-courses # 扫描账号下全部课程
+python signin.py --config chaoxing.json --dump        # 打印接口原始返回（排查用）
+```
+
+### 各类签到的可行性
+
+「远程」的瓶颈从来不是点一下按钮，而是**你不在现场、拿不到现场才有的凭据**：
+
+| 类型 | 需要什么 | 能否无人值守 |
+|---|---|---|
+| 普通签到 | 无 | 可以 |
+| 手势 / 签到码 | 无 —— 签到码可从 `getPPTActiveInfo` 接口直接取到 | 可以 |
+| 二维码（慢速） | 现场同学发一张截图，程序自己解码 | 需要有人传出来 |
+| 二维码（动态，每秒变） | 二维码必须实时出现在你电脑屏幕上（投屏/会议/远程桌面） | 需要画面，不需要人 |
+| 位置 | 经纬度 + 地址，活动详情里通常自带 | 可以（事先配置） |
+| 拍照 | 先传到超星云盘拿到 `objectId` | 需事先配置 |
+
+### 扫码签到
+
+静态码直接喂图或喂文字，程序自己解码（内置 jsQR，不用装任何东西）：
+
+```bash
+python signin.py --config chaoxing.json --qr 二维码.png
+python signin.py --config chaoxing.json --qr "https://mobilelearn.chaoxing.com/pptSign/sign?activeId=123&enc=ABC"
+python signin.py --config chaoxing.json --watch-qr ~/Desktop   # 截图丢桌面就自动签
+```
+
+**动态码（每秒一变）不能用截图** —— 等图片传过来早就过期了。这条链路必须实时：
+
+```bash
+python signin.py --config chaoxing.json --pick-region   # 先框出二维码在屏幕上的位置
+python signin.py --config chaoxing.json --qr-screen --fps 4
+```
+
+`--qr-screen` 每 0.25 秒截一次那块区域 → 解码 → 一发现新的 `enc` 立刻提交。
+实测单帧「抓帧 + 解码」约 40~60ms（1280×720、码占 280px），加一次 HTTP 提交总共 300ms 上下，
+1 秒一换的码也来得及。签上就自动停。
+
+它的前提是：**二维码得出现在你的电脑屏幕上**。老师在教室投屏、你通过腾讯会议/远程桌面看到画面，都算；
+只有同学手机里有码，那是拿不到的 —— 这属于凭据本身不在你手里，程序解决不了。
+
+关于编码：`enc` 每次刷新都会变，超星服务端按当前值校验，所以不存在"存一个码反复用"。
+程序里 `--dump` 能看到每次提交的原始返回，失败时先看返回是不是在提示码过期。
+
+### 用到的接口
+
+| 用途 | 接口 |
+|---|---|
+| 课程列表 | `mooc1-api.chaoxing.com/mycourse/backclazzdata` |
+| 活动列表 | `mobilelearn.chaoxing.com/ppt/activeAPI/taskactivelist` |
+| 活动详情（取签到码） | `mobilelearn.chaoxing.com/v2/apis/active/getPPTActiveInfo` |
+| 提交签到 | `mobilelearn.chaoxing.com/pptSign/stuSignajax` |
+
+超星各版本返回结构不一致，代码里对 JSON 做了容错遍历（深度查找 `activeId` / `signCode`）。若某门课扫不到活动，用 `--dump` 看原始返回再校准。
+
+---
+
 ## 功能
 
 | 任务点类型 | 支持情况 |
